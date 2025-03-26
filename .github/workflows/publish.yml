@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: "18"
           registry-url: "https://npm.pkg.github.com"
-          scope: "@bloom-us"
+          scope: "@coffee-fueled-dev"
 
       - name: Install Bun
         uses: oven-sh/setup-bun@v1

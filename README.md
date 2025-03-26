@@ -15,13 +15,13 @@ A type-safe, structured logger built on [Pino](https://github.com/pinojs/pino) w
 ## Installation
 
 ```bash
-npm install @bloom-us/hello
+npm install @coffee-fueled-dev/hello
 ```
 
 ## Quick Start
 
 ```typescript
-import { helloInnit } from "@bloom-us/hello";
+import { helloInnit } from "@coffee-fueled-dev/hello";
 
 // Define namespaces and levels with const assertions for type safety
 const namespaces = ["app", "api", "db"] as const;
@@ -86,7 +86,7 @@ const prettyLogger = helloInnit(namespaces, levels, { prettyPrint: true });
 ### Custom Pino Options
 
 ```typescript
-import { helloInnit } from "@bloom-us/hello";
+import { helloInnit } from "@coffee-fueled-dev/hello";
 
 // Pass any Pino options as the third argument
 const hello = helloInnit(["app", "api"] as const, ["info", "error"] as const, {
@@ -106,7 +106,7 @@ const hello = helloInnit(["app", "api"] as const, ["info", "error"] as const, {
 The package exports Pino so you can use it directly:
 
 ```typescript
-import { pino, helloInnit } from "@bloom-us/hello";
+import { pino, helloInnit } from "@coffee-fueled-dev/hello";
 
 // Use Pino directly if needed
 const customLogger = pino({ level: "trace" });

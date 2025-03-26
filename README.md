@@ -1,115 +1,45 @@
-# Hello
+# @very-coffee/hello
 
-A type-safe, structured logger built on [Pino](https://github.com/pinojs/pino) with support for the familiar DEBUG environment variable format.
+A simple, type-safe logger for TypeScript applications.
 
-## Key Features
-
-- **Namespace-based logging** - Organize logs by component or feature
-- **DEBUG env var support** - Use the same patterns as the debug package (`DEBUG=app:*,db:error`)
-- **Type-safe API** - Full TypeScript support with strongly typed namespaces and levels
-- **High performance** - Built on Pino for excellent performance
-- **Structured logging** - JSON output for production, pretty output for development
-- **Runtime compatibility** - Works with Node.js and Bun
-- **Configurable formatting** - Choose between pretty-printed or JSON logs
-
-## Installation
+## Install
 
 ```bash
-npm install @coffee-fueled-dev/hello
+npm install @very-coffee/hello
+# or
+bun add @very-coffee/hello
 ```
 
-## Quick Start
+## Usage
 
 ```typescript
-import { helloInnit } from "@coffee-fueled-dev/hello";
+import { helloInnit } from "@very-coffee/hello";
 
-// Define namespaces and levels with const assertions for type safety
-const namespaces = ["app", "api", "db"] as const;
-const levels = ["info", "warn", "error", "debug"] as const;
+// Create a logger with namespaces and log levels
+const hello = helloInnit(
+  ["app", "api", "db"] as const, // namespaces
+  ["info", "warn", "error"] as const // log levels
+);
 
-// Create logger
-const hello = helloInnit(namespaces, levels);
-
-// Use loggers
-hello.app.info("Application starting");
-hello.db.error("Database connection failed", { retryCount: 3 });
-
-// Mix string and object logging
-hello.api.info({ userId: 123, method: "GET" }, "User request received");
+// Log messages
+hello.app.info("Starting application");
+hello.db.error("Database error", { code: 500 });
+hello.api.warn("Rate limit reached", { userId: 123 });
 ```
 
-## Controlling Log Output
+## Control Log Output
 
-Hello offers two ways to control which logs are shown:
-
-### 1. DEBUG Environment Variable
-
-Same format as the debug package, but extended for levels:
+Use the `DEBUG` environment variable to control which logs appear:
 
 ```bash
-# Enable all logs from the app namespace
-DEBUG=app:* node your-app.js
+# Show all logs
+DEBUG=* node app.js
 
-# Enable specific namespace:level combinations
-DEBUG=app:info,db:error node your-app.js
+# Show only app logs
+DEBUG=app:* node app.js
 
-# Enable everything except db namespace
-DEBUG=*,-db node your-app.js
-```
-
-### 2. LOG_LEVEL Environment Variable
-
-Standard Pino log level filtering:
-
-```bash
-# Only show error logs and above
-LOG_LEVEL=error node your-app.js
-
-# Show all logs including debug
-LOG_LEVEL=debug node your-app.js
-```
-
-## Advanced Usage
-
-### Log Formatting
-
-By default, Hello uses pretty-printed logs in development and JSON logs in production. You can override this with the `prettyPrint` option:
-
-```typescript
-// Force JSON logs even in development
-const jsonLogger = helloInnit(namespaces, levels, { prettyPrint: false });
-
-// Force pretty-printed logs even in production
-const prettyLogger = helloInnit(namespaces, levels, { prettyPrint: true });
-```
-
-### Custom Pino Options
-
-```typescript
-import { helloInnit } from "@coffee-fueled-dev/hello";
-
-// Pass any Pino options as the third argument
-const hello = helloInnit(["app", "api"] as const, ["info", "error"] as const, {
-  // Any Pino options here
-  timestamp: pino.stdTimeFunctions.isoTime,
-  redact: ["password", "cookie"],
-  // Custom transport for production
-  transport:
-    process.env.NODE_ENV === "production"
-      ? { target: "pino/file", options: { destination: "/var/log/app.log" } }
-      : undefined,
-});
-```
-
-### Access to Pino
-
-The package exports Pino so you can use it directly:
-
-```typescript
-import { pino, helloInnit } from "@coffee-fueled-dev/hello";
-
-// Use Pino directly if needed
-const customLogger = pino({ level: "trace" });
+# Show specific namespace:level combinations
+DEBUG=app:info,db:error node app.js
 ```
 
 ## License

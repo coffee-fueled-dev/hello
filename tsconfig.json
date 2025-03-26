@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "types": ["mocha", "chai", "node"],
+    "module": "ESNext",
+    "target": "ESNext",
+    "moduleResolution": "bundler",
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "./dist",
+    "skipLibCheck": true,
+    "strict": true,
+    "incremental": false
+  },
+  "include": ["src"]
+}

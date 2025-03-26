@@ -1,11 +1,8 @@
 {
-  "name": "@coffee-fueled-dev/hello",
+  "name": "@very-coffee/hello",
   "description": "A type-safe utility for creating structured logging across multiple namespaces and environments in TypeScript applications",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/coffee-fueled-dev/hello.git"

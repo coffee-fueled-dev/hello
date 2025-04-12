@@ -184,8 +184,14 @@ export const helloInnit = <
   levels: E,
   // Custom options for pino
   options: pino.LoggerOptions & {
-    logger?: any;
+    logger?: pino.Logger;
     prettyPrint?: boolean;
+    disableWorkers?: boolean;
+    file?: {
+      path: string;
+      level?: pino.LevelWithSilent;
+      prettyPrint?: boolean;
+    };
   } = {}
 ): Hello<N, E> => {
   // Parse DEBUG environment variable
@@ -256,8 +262,28 @@ export const helloInnit = <
       ? options.prettyPrint
       : process.env.NODE_ENV !== "production";
 
-  // Transport config for non-test environments
-  if (process.env.NODE_ENV !== "test" && shouldUsePrettyPrint) {
+  // Configure file transport if requested
+  if (options.file) {
+    const transportConfig = {
+      target: options.file.prettyPrint ? "pino-pretty" : "pino/file",
+      options: {
+        destination: options.file.path,
+        level: options.file.level || getMinLogLevel(),
+        ...(options.file.prettyPrint && {
+          colorize: false,
+          translateTime: "SYS:standard",
+          ignore: "pid,hostname",
+          messageFormat: "{namespace} {environment} - {msg}",
+          worker: {
+            enabled: !options.disableWorkers,
+          },
+        }),
+      },
+    };
+    defaultOptions.transport = transportConfig;
+  }
+  // Transport config for non-test environments (only if file transport not configured)
+  else if (process.env.NODE_ENV !== "test" && shouldUsePrettyPrint) {
     // Use pino-pretty for nice output
     defaultOptions.transport = {
       target: "pino-pretty",
@@ -266,6 +292,9 @@ export const helloInnit = <
         translateTime: "SYS:standard",
         ignore: "pid,hostname",
         messageFormat: "{namespace} {environment} - {msg}",
+        worker: {
+          enabled: !options.disableWorkers,
+        },
       },
     };
   }

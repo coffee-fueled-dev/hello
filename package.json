@@ -7,9 +7,13 @@
     "type": "git",
     "url": "git+https://github.com/coffee-fueled-dev/hello.git"
   },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/index.js",
+      "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
     }
   },
@@ -20,6 +24,7 @@
     "@types/bun": "latest",
     "@types/chai": "^5.0.1",
     "@types/mocha": "^10.0.10",
+    "@types/node": "^20.0.0",
     "@types/pino": "^7.0.5",
     "@types/sinon": "^10.0.15",
     "chai": "^5.1.2",

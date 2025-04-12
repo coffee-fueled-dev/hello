@@ -1,17 +1,44 @@
+/// <reference types="mocha" />
 import { expect } from "chai";
 import { helloInnit, createDebugPatterns } from "../src/index";
 import sinon from "sinon";
+import fs from "fs";
+import path from "path";
+
+// Helper function to wait for file to be created and written
+const waitForFile = async (
+  filePath: string,
+  timeout = 2000
+): Promise<string> => {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, "utf8");
+      if (content.length > 0) {
+        return content;
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`Timeout waiting for file ${filePath}`);
+};
 
 describe("Pino-based Hello Logger", () => {
   // Save original DEBUG and LOG_LEVEL env vars
   const originalDebug = process.env.DEBUG;
   const originalLogLevel = process.env.LOG_LEVEL;
+  const testLogPath = path.join(process.cwd(), "test.log");
 
   afterEach(() => {
     // Restore env vars after each test
     process.env.DEBUG = originalDebug;
     process.env.LOG_LEVEL = originalLogLevel;
     sinon.restore();
+
+    // Clean up test log file
+    if (fs.existsSync(testLogPath)) {
+      fs.unlinkSync(testLogPath);
+    }
   });
 
   describe("createDebugPatterns", () => {
@@ -205,6 +232,101 @@ describe("Pino-based Hello Logger", () => {
       expect(infoStub.calledOnce).to.be.true;
       expect(errorStub.called).to.be.false;
       expect(infoStub.firstCall.args[0]).to.equal("Test message");
+    });
+  });
+
+  describe("file logging", () => {
+    it("should write logs to file when file transport is configured", async () => {
+      const namespaces = ["app"] as const;
+      const levels = ["info"] as const;
+      const testMessage = "Test file log message";
+
+      const hello = helloInnit(namespaces, levels, {
+        file: {
+          path: testLogPath,
+          level: "info",
+        },
+      });
+
+      hello.app.info(testMessage);
+
+      const logContent = await waitForFile(testLogPath);
+      expect(logContent).to.include(testMessage);
+    });
+
+    it("should respect file-specific log level", async () => {
+      const namespaces = ["app"] as const;
+      const levels = ["info", "debug"] as const;
+      const debugMessage = "Debug message";
+      const infoMessage = "Info message";
+
+      const hello = helloInnit(namespaces, levels, {
+        file: {
+          path: testLogPath,
+          level: "info", // Only info and above
+        },
+      });
+
+      hello.app.debug(debugMessage);
+      hello.app.info(infoMessage);
+
+      const logContent = await waitForFile(testLogPath);
+      expect(logContent).to.not.include(debugMessage);
+      expect(logContent).to.include(infoMessage);
+    });
+
+    it("should support pretty printing in file output", async () => {
+      const namespaces = ["app"] as const;
+      const levels = ["info"] as const;
+      const testMessage = "Test pretty print message";
+
+      const hello = helloInnit(namespaces, levels, {
+        file: {
+          path: testLogPath,
+          prettyPrint: true,
+        },
+      });
+
+      hello.app.info(testMessage);
+
+      const logContent = await waitForFile(testLogPath);
+      expect(logContent).to.include(testMessage);
+      // Pretty print adds timestamps and formatting
+      expect(logContent).to.match(/\d{4}-\d{2}-\d{2}/);
+    });
+  });
+
+  describe("worker thread configuration", () => {
+    it("should disable worker threads when disableWorkers is true", () => {
+      const namespaces = ["app"] as const;
+      const levels = ["info"] as const;
+
+      const hello = helloInnit(namespaces, levels, {
+        disableWorkers: true,
+        prettyPrint: true,
+      });
+
+      // The logger should still work without workers
+      expect(() => hello.app.info("test")).to.not.throw();
+    });
+
+    it("should work with both file logging and disabled workers", async () => {
+      const namespaces = ["app"] as const;
+      const levels = ["info"] as const;
+      const testMessage = "Test message with disabled workers";
+
+      const hello = helloInnit(namespaces, levels, {
+        disableWorkers: true,
+        file: {
+          path: testLogPath,
+          prettyPrint: true,
+        },
+      });
+
+      hello.app.info(testMessage);
+
+      const logContent = await waitForFile(testLogPath);
+      expect(logContent).to.include(testMessage);
     });
   });
 });

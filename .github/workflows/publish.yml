@@ -5,9 +5,35 @@ on:
     types: [published]
 
 jobs:
-  build-and-publish:
+  test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies with Bun
+        run: bun install
+
+      - name: Run tests
+        run: bun run test
+        id: test
+
+  build-and-publish:
+    needs: test
+    runs-on: ubuntu-latest
     permissions:
       contents: read
 
@@ -34,9 +60,6 @@ jobs:
 
       - name: Install dependencies with Bun
         run: bun install
-
-      - name: Run tests
-        run: bun run test
 
       - name: Build package with Bun
         run: bun run build

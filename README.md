@@ -61,11 +61,24 @@ const hello = helloInnit(namespaces, levels, {
 For Next.js applications, especially in edge runtime environments where worker threads aren't supported:
 
 ```typescript
-const hello = helloInnit(namespaces, levels, {
-  disableWorkers: true, // Disable worker threads for Next.js compatibility
-  prettyPrint: true,
+// In your logger configuration file (e.g., src/lib/logs.ts)
+import { helloInnit } from "@very-coffee/hello";
+
+const namespaces = ["app", "api"] as const;
+const levels = ["info", "error", "debug"] as const;
+
+export const hello = helloInnit(namespaces, levels, {
+  disableWorkers: true, // Required for Next.js edge runtime
+  prettyPrint: process.env.NODE_ENV === "development",
 });
 ```
+
+When using in Next.js:
+
+1. Always set `disableWorkers: true` to avoid worker thread errors
+2. The logger will automatically use synchronous logging in edge runtime
+3. File logging will use direct file streams instead of worker threads
+4. Pretty printing will work in development mode without workers
 
 ### Combined Configuration
 

@@ -1,4 +1,5 @@
 import pino from "pino";
+import * as fs from "fs";
 
 // Type for multi-namespace logger
 export type Hello<N extends readonly string[], E extends readonly string[]> = {
@@ -247,7 +248,7 @@ export const helloInnit = <
   };
 
   // Set up default options
-  const defaultOptions: pino.LoggerOptions = {
+  const defaultOptions: pino.LoggerOptions & { stream?: any } = {
     level: getMinLogLevel(),
     formatters: {
       level: (label) => {
@@ -264,43 +265,52 @@ export const helloInnit = <
 
   // Configure file transport if requested
   if (options.file) {
-    const transportConfig = {
-      target: options.file.prettyPrint ? "pino-pretty" : "pino/file",
-      options: {
-        destination: options.file.path,
-        level: options.file.level || getMinLogLevel(),
-        ...(options.file.prettyPrint && {
-          colorize: false,
-          translateTime: "SYS:standard",
-          ignore: "pid,hostname",
-          messageFormat: "{namespace} {environment} - {msg}",
-          worker: {
-            enabled: !options.disableWorkers,
-          },
-        }),
-      },
-    };
-    defaultOptions.transport = transportConfig;
+    if (options.disableWorkers) {
+      // For Next.js compatibility, use direct file stream
+      const fileStream = fs.createWriteStream(options.file.path, {
+        flags: "a",
+      });
+      defaultOptions.stream = fileStream;
+    } else {
+      const transportConfig = {
+        target: options.file.prettyPrint ? "pino-pretty" : "pino/file",
+        options: {
+          destination: options.file.path,
+          level: options.file.level || getMinLogLevel(),
+          ...(options.file.prettyPrint && {
+            colorize: false,
+            translateTime: "SYS:standard",
+            ignore: "pid,hostname",
+            messageFormat: "{namespace} {environment} - {msg}",
+          }),
+        },
+      };
+      defaultOptions.transport = transportConfig;
+    }
   }
   // Transport config for non-test environments (only if file transport not configured)
   else if (process.env.NODE_ENV !== "test" && shouldUsePrettyPrint) {
-    // Use pino-pretty for nice output
-    defaultOptions.transport = {
-      target: "pino-pretty",
-      options: {
-        colorize: true,
-        translateTime: "SYS:standard",
-        ignore: "pid,hostname",
-        messageFormat: "{namespace} {environment} - {msg}",
-        worker: {
-          enabled: !options.disableWorkers,
+    if (options.disableWorkers) {
+      // For Next.js compatibility, use direct pretty print stream
+      defaultOptions.stream = pino.destination({
+        sync: true, // Force synchronous logging
+      });
+    } else {
+      // Use pino-pretty for nice output
+      defaultOptions.transport = {
+        target: "pino-pretty",
+        options: {
+          colorize: true,
+          translateTime: "SYS:standard",
+          ignore: "pid,hostname",
+          messageFormat: "{namespace} {environment} - {msg}",
         },
-      },
-    };
+      };
+    }
   }
 
   // Apply user options (except our custom options)
-  const { prettyPrint, ...pinoOptions } = options;
+  const { prettyPrint, disableWorkers, file, ...pinoOptions } = options;
   const finalOptions = {
     ...defaultOptions,
     ...pinoOptions,

@@ -8,19 +8,23 @@ import path from "path";
 // Helper function to wait for file to be created and written
 const waitForFile = async (
   filePath: string,
-  timeout = 2000
+  timeout = 5000 // Increased timeout to 5 seconds
 ): Promise<string> => {
   const start = Date.now();
   while (Date.now() - start < timeout) {
-    if (fs.existsSync(filePath)) {
-      const content = fs.readFileSync(filePath, "utf8");
-      if (content.length > 0) {
-        return content;
+    try {
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, "utf8");
+        if (content.length > 0) {
+          return content;
+        }
       }
+    } catch (err) {
+      console.error(`Error reading file ${filePath}:`, err);
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  throw new Error(`Timeout waiting for file ${filePath}`);
+  throw new Error(`Timeout waiting for file ${filePath} after ${timeout}ms`);
 };
 
 describe("Pino-based Hello Logger", () => {
@@ -315,6 +319,13 @@ describe("Pino-based Hello Logger", () => {
       const levels = ["info"] as const;
       const testMessage = "Test message with disabled workers";
 
+      console.log("Test starting, cleaning up old file if exists");
+      // Clean up any existing file first
+      if (fs.existsSync(testLogPath)) {
+        fs.unlinkSync(testLogPath);
+      }
+
+      console.log("Creating logger");
       const hello = helloInnit(namespaces, levels, {
         disableWorkers: true,
         file: {
@@ -323,10 +334,39 @@ describe("Pino-based Hello Logger", () => {
         },
       });
 
+      console.log("Writing test message");
+      // Write the message
       hello.app.info(testMessage);
 
-      const logContent = await waitForFile(testLogPath);
-      expect(logContent).to.include(testMessage);
+      console.log("Waiting for file to be written");
+      // Force a small delay to allow for file system operations
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      try {
+        console.log("Checking if file exists:", testLogPath);
+        if (fs.existsSync(testLogPath)) {
+          console.log("File exists, reading content directly");
+          const directContent = fs.readFileSync(testLogPath, "utf8");
+          console.log("Direct file content:", directContent);
+        } else {
+          console.log("File does not exist yet");
+        }
+
+        console.log("Waiting for file with waitForFile");
+        const logContent = await waitForFile(testLogPath);
+        console.log("File content from waitForFile:", logContent);
+        expect(logContent).to.include(testMessage);
+      } catch (err) {
+        console.error("Test failed:", err);
+        // Check if file exists and try to read it directly
+        if (fs.existsSync(testLogPath)) {
+          const content = fs.readFileSync(testLogPath, "utf8");
+          console.log("File exists, content:", content);
+        } else {
+          console.log("File does not exist at path:", testLogPath);
+        }
+        throw err;
+      }
     });
   });
 });

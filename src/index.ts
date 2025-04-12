@@ -1,5 +1,6 @@
 import pino from "pino";
 import * as fs from "fs";
+import { dirname } from "path";
 
 // Type for multi-namespace logger
 export type Hello<N extends readonly string[], E extends readonly string[]> = {
@@ -266,11 +267,25 @@ export const helloInnit = <
   // Configure file transport if requested
   if (options.file) {
     if (options.disableWorkers) {
-      // For Next.js compatibility, use direct file stream
-      const fileStream = fs.createWriteStream(options.file.path, {
-        flags: "a",
+      // For Next.js compatibility, use Pino's destination directly
+      defaultOptions.stream = pino.destination({
+        dest: options.file.path,
+        sync: true, // Force synchronous writes
       });
-      defaultOptions.stream = fileStream;
+
+      if (options.file.prettyPrint) {
+        defaultOptions.transport = {
+          target: "pino-pretty",
+          options: {
+            colorize: false,
+            destination: options.file.path,
+            sync: true,
+            translateTime: "SYS:standard",
+            ignore: "pid,hostname",
+            messageFormat: "{namespace} {environment} - {msg}",
+          },
+        };
+      }
     } else {
       const transportConfig = {
         target: options.file.prettyPrint ? "pino-pretty" : "pino/file",
